@@ -5,16 +5,16 @@ const fs = require('fs/promises');
 const { createWriteStream, createReadStream } = require('fs');
 
 class StyleMerger {
-  constructor(bundle) {
-    this.bundle = bundle;
+  constructor(srcDir) {
+    this.srcDir = srcDir;
   }
 
-  async merge(srcDir) {
+  async merge(bundle) {
     try {
-      const srcEntries = await fs.readdir(srcDir, { withFileTypes: true });
+      const srcEntries = await fs.readdir(this.srcDir, { withFileTypes: true });
 
-      const output = createWriteStream(this.bundle).on('finish', () => {
-        console.log(`DONE: ${path.basename(this.bundle)}`);
+      const output = createWriteStream(bundle).on('finish', () => {
+        console.log(`DONE: ${path.basename(bundle)}`);
       });
 
       const handler = srcEntries.reduceRight(
@@ -23,13 +23,12 @@ class StyleMerger {
           if (!srcEntry.name.match(/\.css$/)) return handler;
 
           return (writeStream) => {
-            const input = createReadStream(path.join(srcDir, srcEntry.name)).on(
-              'end',
-              () => {
-                console.log(srcEntry.name);
-                handler(writeStream);
-              },
-            );
+            const input = createReadStream(
+              path.join(this.srcDir, srcEntry.name),
+            ).on('end', () => {
+              console.log(srcEntry.name);
+              handler(writeStream);
+            });
 
             input.pipe(output, { end: false });
           };
