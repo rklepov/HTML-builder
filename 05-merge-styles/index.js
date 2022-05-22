@@ -17,16 +17,29 @@ class StyleMerger {
         console.log(`DONE: ${path.basename(this.bundle)}`);
       });
 
-      for (let srcEntry of srcEntries) {
-        if (!srcEntry.isFile()) continue;
+      const handler = srcEntries.reduceRight(
+        (handler, srcEntry) => {
+          if (!srcEntry.isFile()) return handler;
+          if (!srcEntry.name.match(/\.css$/)) return handler;
 
-        if ('css' === srcEntry.name.split('.').pop()) {
-          console.log(srcEntry.name);
-          const input = createReadStream(path.join(srcDir, srcEntry.name));
+          return (writeStream) => {
+            const input = createReadStream(path.join(srcDir, srcEntry.name)).on(
+              'end',
+              () => {
+                console.log(srcEntry.name);
+                handler(writeStream);
+              },
+            );
 
-          input.pipe(output);
-        }
-      }
+            input.pipe(output, { end: false });
+          };
+        },
+        (writeStream) => {
+          writeStream.end();
+        },
+      );
+
+      handler(output);
     } catch (e) {
       console.error(e);
     }
