@@ -27,31 +27,34 @@ class SourceGen {
     }
   }
 
-  async generate(dstPath) {
-    try {
-      const input = createReadStream(this.templatePath);
-      const output = createWriteStream(dstPath);
+  generate(dstPath) {
+    return new Promise((resolve, reject) => {
+      try {
+        const input = createReadStream(this.templatePath);
+        const output = createWriteStream(dstPath);
 
-      const rl = readline.createInterface({
-        input,
-        crlfDelay: Infinity,
-      });
-
-      for await (let line of rl) {
-        line = line.replace(this.reTag, (match, component) => {
-          if (!component || !this.components.has(component)) return match;
-          return this.components.get(component);
+        const rl = readline.createInterface({
+          input,
+          crlfDelay: Infinity,
         });
 
-        output.write(`${line}${EOL}`);
+        rl.on('line', (line) => {
+          line = line.replace(this.reTag, (match, component) => {
+            if (!component || !this.components.has(component)) return match;
+            return this.components.get(component);
+          });
+          output.write(`${line}${EOL}`);
+        }).on('close', () => {
+          output.end(() => {
+            console.log(`DONE: ${path.basename(dstPath)}`);
+            resolve(dstPath);
+          });
+        });
+      } catch (e) {
+        console.error('SourceGen::generate', e);
+        reject(e);
       }
-
-      output.end(() => {
-        console.log(`DONE: ${path.basename(dstPath)}`);
-      });
-    } catch (e) {
-      console.error('SourceGen::generate', e);
-    }
+    });
   }
 
   getFileContent(filePath) {

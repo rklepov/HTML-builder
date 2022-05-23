@@ -16,10 +16,12 @@ async function buildPage(
   try {
     const dirSync = new DirSync(assetsDir);
     await dirSync.syncDir(path.join(distDir, path.basename(assetsDir)));
+    console.log();
 
     const htmlGen = new SourceGen(htmlTemplatePath);
     await htmlGen.loadComponents(componentsDir);
     await htmlGen.generate(path.join(distDir, 'index.html'));
+    console.log();
 
     const styleMerger = new StyleMerger(stylesDir);
     await styleMerger.merge(path.join(distDir, 'style.css'));

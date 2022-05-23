@@ -23,22 +23,30 @@ class StyleMerger {
           if (!srcEntry.name.match(/\.css$/)) return handler;
 
           return (writeStream) => {
-            const input = createReadStream(
-              path.join(this.srcDir, srcEntry.name),
-            ).on('end', () => {
-              console.log(srcEntry.name);
-              handler(writeStream);
-            });
+            return new Promise((resolve, reject) => {
+              const input = createReadStream(
+                path.join(this.srcDir, srcEntry.name),
+              )
+                .on('end', () => {
+                  console.log(srcEntry.name);
+                  resolve(handler(writeStream));
+                })
+                .on('error', (e) => reject(e));
 
-            input.pipe(output, { end: false });
+              input.pipe(output, { end: false });
+            });
           };
         },
         (writeStream) => {
-          writeStream.end();
+          return new Promise((resolve) => {
+            writeStream.end(() => {
+              resolve();
+            });
+          });
         },
       );
 
-      handler(output);
+      return handler(output);
     } catch (e) {
       console.error(e);
     }
